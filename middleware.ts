@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAccessToken } from "./lib/middleware/auth";
 
-export async function middleware(Request: NextRequest) {
-  if (Request.nextUrl.pathname.startsWith("/protected-route")) {
-    if (Request.cookies.has("token")) {
-      const token = Request.cookies.get("token")?.value;
-      const tokenPayload = await verifyAccessToken(token!);
-      if (tokenPayload) {
-        return NextResponse.next();
-      } else {
-        return NextResponse.redirect(new URL("/login", Request.url));
-      }
-    } else {
-      return NextResponse.redirect(new URL("/login", Request.url));
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  if (pathname.startsWith("/protected-route")) {
+    const token = req.cookies.get("token");
+
+    if (token) {
+      return NextResponse.next();
     }
+
+    const loginUrl = req.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    return NextResponse.redirect(loginUrl);
   }
+
   return NextResponse.next();
 }
 

